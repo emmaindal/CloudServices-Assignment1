@@ -1,0 +1,15 @@
+{
+    "name": "emmis/cloud-services-assignment1",
+    "description": "Assignment 1 in the course cloud-services at Malmö University",
+    "type": "school-project",
+    "require": {
+        "guzzlehttp/guzzle": "^6.3",
+        "monolog/monolog": "^1.24"
+    },
+    "authors": [
+        {
+            "name": "emmaindal",
+            "email": "emma.indahl@gmail.com"
+        }
+    ]
+}
