@@ -1,6 +1,11 @@
 <?php
 
 require 'vendor/autoload.php';
+use Monolog\Logger;
+use Monolog\Handler\StreamHandler;
+$log = new Logger('unicorns');
+$log->pushHandler(new StreamHandler('visits.log', Logger::INFO));
+
 $client = new \GuzzleHttp\Client();
 
 function getUnicorn($id, $client){
@@ -19,8 +24,11 @@ function getUnicorns($client){
 $unicornId = $_GET["id"];
 if ($unicornId) {
   $unicorn = getUnicorn($unicornId, $client);
+  $name = $unicorn["name"];
+  $log->info("Requested info about: $name");
 } else {
   $unicorns = getUnicorns($client);
+  $log->info("Requested info about all unicorns");
 }
 
 ?>
