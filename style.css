@@ -1,0 +1,28 @@
+.container {
+  font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+  background: rgb(170, 202, 237, 0.5);
+}
+
+.unicorn-card {
+  box-shadow: 0 4px 8px rgba(124, 124, 124, 0.25),
+    0 2px 4px rgba(136, 136, 136, 0.39);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.link {
+  color: black;
+  text-align: right;
+}
+.link:hover {
+  color: white;
+}
+
+section {
+  margin-top: 5%;
+}
+
+input {
+  margin-bottom: 1% !important;
+}
