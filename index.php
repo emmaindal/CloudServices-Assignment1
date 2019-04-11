@@ -96,7 +96,7 @@ if ($unicornId) {
         }
         
       ?>
-    </sectio>
+  </section>
 </body>
 
 </html>
