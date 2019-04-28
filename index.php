@@ -23,9 +23,22 @@ function getUnicorns($client){
 
 $unicornId = $_GET["id"];
 if ($unicornId) {
-  $unicorn = getUnicorn($unicornId, $client);
-  $name = $unicorn["name"];
-  $log->info("Requested info about: $name");
+  $unicorns = getUnicorns($client);
+  $validUnicorns = [];
+  foreach ($unicorns as $unicorn) {
+    if ($unicorn["name"]) {
+      array_push($validUnicorns, $unicorn);
+    };
+  }
+  if ($unicornId <= sizeof($validUnicorns)) {
+   
+    $unicorn = getUnicorn($unicornId, $client);
+    $name = $unicorn["name"];
+    $log->info("Requested info about: $name");
+  } else{
+    $unicornNotFound = true;
+  }
+ 
 } else {
   $unicorns = getUnicorns($client);
   $log->info("Requested info about all unicorns");
@@ -51,7 +64,7 @@ if ($unicornId) {
   <hr>
   <form action="/" method="get">
     <label for="unicorn-id">Skriv in enhörnings id: </label>
-    <input type="text" id="unicorn-id" name="id" class="form-control">
+    <input type="number" id="unicorn-id" name="id" class="form-control">
     <button type="submit" class="btn btn-primary">Visa enhörning</button>
     <button type="submit" class="btn btn-outline-primary"><a class="link" href="/">Visa alla enhörningar</a></button>
   </form>
@@ -64,7 +77,10 @@ if ($unicornId) {
           $date = substr($dateTime, 0, 10);
           $image = $unicorn["image"];
           $reportedBy = $unicorn["reportedBy"];
-          echo "<div class=\"card mb-3\" style=\"max-width: 100%\">
+          if ($unicornNotFound) {
+            echo "<p>Fanns ingen enhörning med det Id:t, dubbelkolla i listan vilka enhörnings id:n som är tillgängliga</p>";
+          } else {
+            echo "<div class=\"card mb-3\" style=\"max-width: 100%\">
                   <div class=\"row no-gutters\">
                     <div class=\"col-md-4\">
                       <img src=\"$image\" class=\"card-img\" alt=\"...\">
@@ -79,6 +95,7 @@ if ($unicornId) {
                     </div>
                   </div>
                 </div>";
+          }
         } else {
         echo "<h5>Alla Enhörningar</h5>";
         $i = 0;
