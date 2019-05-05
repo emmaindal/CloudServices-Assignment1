@@ -3,47 +3,59 @@
 require 'vendor/autoload.php';
 use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
+
 $log = new Logger('unicorns');
 $log->pushHandler(new StreamHandler('visits.log', Logger::INFO));
-
 $client = new \GuzzleHttp\Client();
 
-function getUnicorn($id, $client){
+function getUnicorn($id, $client)
+{
   $response = $client->request('GET', "http://unicorns.idioti.se/$id", ['headers' => [
     'Accept' => 'application/json']])->getBody();
   $unicorn = json_decode($response, true);
   return $unicorn;
 }
 
-function getUnicorns($client){
+function getUnicorns($client)
+{
   $response = $client->request('GET', "http://unicorns.idioti.se/", ['headers' => [ 'Accept' => 'application/json']])->getBody();
   $unicorns = json_decode($response, true);
   return $unicorns;
 }
 
-$unicornId = $_GET["id"];
-if ($unicornId) {
-  $unicorns = getUnicorns($client);
+function validateUnicorns($unicorns)
+{
   $validUnicorns = [];
   foreach ($unicorns as $unicorn) {
     if ($unicorn["name"]) {
       array_push($validUnicorns, $unicorn);
     };
   }
-  if ($unicornId <= sizeof($validUnicorns)) {
-   
-    $unicorn = getUnicorn($unicornId, $client);
-    $name = $unicorn["name"];
-    $log->info("Requested info about: $name");
-  } else{
-    $unicornNotFound = true;
-  }
- 
-} else {
-  $unicorns = getUnicorns($client);
-  $log->info("Requested info about all unicorns");
+  return $validUnicorns;
 }
 
+function renderData($unicornId, $client, $log)
+{
+  $unicorns = getUnicorns($client);
+  $validUnicorns = validateUnicorns($unicorns);
+  if ($unicornId) {
+    if ($unicornId <= sizeof($validUnicorns)) {
+      $unicorn = getUnicorn($unicornId, $client);
+      $name = $unicorn["name"];
+      $log->info("Requested info about: $name");
+      return $unicorn;
+    } else{
+      $unicornNotFound["id"] = "not found";
+      return $unicornNotFound;
+    }
+  } else {
+    $log->info("Requested info about all unicorns");
+    return $validUnicorns;
+  }
+}
+
+$unicornId = $_GET["id"];
+$data = renderData($unicornId, $client, $log);
 ?>
 
 <!DOCTYPE html>
@@ -65,21 +77,21 @@ if ($unicornId) {
   <form action="/" method="get">
     <label for="unicorn-id">Skriv in enhörnings id: </label>
     <input type="number" id="unicorn-id" name="id" class="form-control">
-    <button type="submit" class="btn btn-primary">Visa enhörning</button>
+    <button type="submit" id="show-unicorn" class="btn btn-primary">Visa enhörning</button>
     <button type="submit" class="btn btn-outline-primary"><a class="link" href="/">Visa alla enhörningar</a></button>
   </form>
   <section>
     <?php
-        if ($unicorn) {
-          $name = $unicorn["name"];
-          $description = $unicorn["description"];
-          $dateTime = $unicorn["spottedWhen"];
-          $date = substr($dateTime, 0, 10);
-          $image = $unicorn["image"];
-          $reportedBy = $unicorn["reportedBy"];
-          if ($unicornNotFound) {
+        if ($data["id"]) {
+          if ($data["id"] == "not found") {
             echo "<p>Fanns ingen enhörning med det Id:t, dubbelkolla i listan vilka enhörnings id:n som är tillgängliga</p>";
           } else {
+            $name = $data["name"];
+            $description = $data["description"];
+            $dateTime = $data["spottedWhen"];
+            $date = substr($dateTime, 0, 10);
+            $image = $data["image"];
+            $reportedBy = $data["reportedBy"];
             echo "<div class=\"card mb-3\" style=\"max-width: 100%\">
                   <div class=\"row no-gutters\">
                     <div class=\"col-md-4\">
@@ -98,30 +110,25 @@ if ($unicornId) {
           }
         } else {
         echo "<h5>Alla Enhörningar</h5>";
-        $i = 0;
-        foreach($unicorns as $unicorn){
-          $i++;
+        foreach($data as $unicorn){
           $name = $unicorn["name"];
-          if (!$name == "") {
-            $id = $unicorn["id"];
-            $details = $unicorn["details"];
-            echo "<div class=\"card mb-3\" style=\"max-width: 100%\">
+          $id = $unicorn["id"];
+          $details = $unicorn["details"];
+          echo "<div class=\"card mb-3\" style=\"max-width: 100%\">
                   <div class=\"row no-gutters\">
                     <div class=\"col-md-12\">
                         <div class=\"card-body unicorn-card\">
-                            <h5 class=\"card-title\">$i: $name</h5>
+                            <h5 class=\"card-title\">$id: $name</h5>
                             <button class=\"btn btn-outline-dark\"><a class=\"link\" href=\"/?id=$id\">Läs mer</a></button>
-                    
                       </div>
                     </div>
                   </div>
                 </div>";
-            }
-          }
+          }  
         }
-        
       ?>
   </section>
+  <script src="script.js"></script>
 </body>
 
 </html>
