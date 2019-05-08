@@ -10,17 +10,32 @@ $client = new \GuzzleHttp\Client();
 
 function getUnicorn($id, $client)
 {
-  $response = $client->request('GET', "http://unicorns.idioti.se/$id", ['headers' => [
-    'Accept' => 'application/json']])->getBody();
-  $unicorn = json_decode($response, true);
-  return $unicorn;
+  try {
+    $response = $client->request('GET', "http://unicorns.idioti.se/$id", ['headers' => [
+      'Accept' => 'application/json']])->getBody();
+    $unicorn = json_decode($response, true);
+    return $unicorn;
+  }
+  catch (GuzzleHttp\Exception\ClientException $error) {
+    $response = $error->getResponse();
+    $unicornNotFound = $response->getBody();
+    echo $unicornNotFound;
+  };
 }
 
 function getUnicorns($client)
 {
-  $response = $client->request('GET', "http://unicorns.idioti.se/", ['headers' => [ 'Accept' => 'application/json']])->getBody();
-  $unicorns = json_decode($response, true);
-  return $unicorns;
+  try {
+    $response = $client->request('GET', "http://unicorns.idioti.se/", ['headers' => [ 'Accept' => 'application/json']])->getBody();
+    $unicorns = json_decode($response, true);
+    $validUnicorns = validateUnicorns($unicorns);
+    return $validUnicorns;
+  }
+  catch (GuzzleHttp\Exception\ClientException $error) {
+    $response = $error->getResponse();
+    $unicornsNotFound = $response->getBody();
+    echo $unicornsNotFound;
+  };
 }
 
 function validateUnicorns($unicorns)
@@ -34,28 +49,52 @@ function validateUnicorns($unicorns)
   return $validUnicorns;
 }
 
-function renderData($unicornId, $client, $log)
+function renderData($client, $log)
 {
-  $unicorns = getUnicorns($client);
-  $validUnicorns = validateUnicorns($unicorns);
+  $unicornId = isset($_GET["id"]) ? $_GET["id"] : false;
   if ($unicornId) {
-    if ($unicornId <= sizeof($validUnicorns)) {
-      $unicorn = getUnicorn($unicornId, $client);
-      $name = $unicorn["name"];
-      $log->info("Requested info about: $name");
-      return $unicorn;
+    $unicorn = getUnicorn($unicornId, $client);
+    if ($unicorn == "") {
+      $content = "<p>Fanns ingen enhörning med det Id:t, dubbelkolla i listan vilka enhörnings id:n som är tillgängliga</p>";
     } else{
-      $unicornNotFound["id"] = "not found";
-      return $unicornNotFound;
+      extract($unicorn);
+      $content = "<div class=\"card mb-3\" style=\"max-width: 100%\">
+                    <div class=\"row no-gutters\">
+                      <div class=\"col-md-4\">
+                        <img src=\"$image\" class=\"card-img\" alt=\"...\">
+                      </div>
+                      <div class=\"col-md-8\">
+                        <div class=\"card-body\">
+                          <h5 class=\"card-title\">$name</h5>
+                          <small class=\"text-muted\">$spottedWhen</small>
+                          <p class=\"card-text\">$description</p>
+                          <p class=\"card-text\"><small class=\"text-muted\">Rapporterad av: $reportedBy</small></p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>";
+      $log->info("Requested info about: $name");
     }
-  } else {
-    $log->info("Requested info about all unicorns");
-    return $validUnicorns;
+    echo $content;
+    } else {
+      $log->info("Requested info about all unicorns");
+      $unicorns = getUnicorns($client);
+      foreach($unicorns as $unicorn){
+        extract($unicorn);
+        $content = "<div class=\"card mb-3\" style=\"max-width: 100%\">
+                      <div class=\"row no-gutters\">
+                        <div class=\"col-md-12\">
+                          <div class=\"card-body unicorn-card\">
+                            <h5 class=\"card-title\">$id: $name</h5>
+                            <button class=\"btn btn-outline-dark\"><a class=\"link\" href=\"/?id=$id\">Läs mer</a></button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>";
+        echo $content;
+      }  
+    }
   }
-}
-
-$unicornId = $_GET["id"];
-$data = renderData($unicornId, $client, $log);
 ?>
 
 <!DOCTYPE html>
@@ -82,50 +121,7 @@ $data = renderData($unicornId, $client, $log);
   </form>
   <section>
     <?php
-        if ($data["id"]) {
-          if ($data["id"] == "not found") {
-            echo "<p>Fanns ingen enhörning med det Id:t, dubbelkolla i listan vilka enhörnings id:n som är tillgängliga</p>";
-          } else {
-            $name = $data["name"];
-            $description = $data["description"];
-            $dateTime = $data["spottedWhen"];
-            $date = substr($dateTime, 0, 10);
-            $image = $data["image"];
-            $reportedBy = $data["reportedBy"];
-            echo "<div class=\"card mb-3\" style=\"max-width: 100%\">
-                  <div class=\"row no-gutters\">
-                    <div class=\"col-md-4\">
-                      <img src=\"$image\" class=\"card-img\" alt=\"...\">
-                    </div>
-                    <div class=\"col-md-8\">
-                      <div class=\"card-body\">
-                        <h5 class=\"card-title\">$name</h5>
-                        <small class=\"text-muted\">$date</small>
-                        <p class=\"card-text\">$description</p>
-                        <p class=\"card-text\"><small class=\"text-muted\">Rapporterad av: $reportedBy</small></p>
-                      </div>
-                    </div>
-                  </div>
-                </div>";
-          }
-        } else {
-        echo "<h5>Alla Enhörningar</h5>";
-        foreach($data as $unicorn){
-          $name = $unicorn["name"];
-          $id = $unicorn["id"];
-          $details = $unicorn["details"];
-          echo "<div class=\"card mb-3\" style=\"max-width: 100%\">
-                  <div class=\"row no-gutters\">
-                    <div class=\"col-md-12\">
-                        <div class=\"card-body unicorn-card\">
-                            <h5 class=\"card-title\">$id: $name</h5>
-                            <button class=\"btn btn-outline-dark\"><a class=\"link\" href=\"/?id=$id\">Läs mer</a></button>
-                      </div>
-                    </div>
-                  </div>
-                </div>";
-          }  
-        }
+       renderData($client, $log);
       ?>
   </section>
   <script src="script.js"></script>
